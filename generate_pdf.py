@@ -5,7 +5,7 @@ import os
 class PDFReport(FPDF):
     def header(self):
         self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 10, 'BalticSolar Tech: Production Financial Plan', 0, 1, 'C')
+        self.cell(0, 10, 'Lithuania PV Production Financial Plan (Market-Scaled)', 0, 1, 'C')
         self.ln(5)
 
     def footer(self):
@@ -14,7 +14,7 @@ class PDFReport(FPDF):
         self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
     def chapter_title(self, title):
-        self.set_font('Helvetica', 'B', 12)
+        self.set_font('Helvetica', 'B', 14)
         self.cell(0, 10, title, 0, 1, 'L')
         self.ln(2)
 
@@ -23,135 +23,167 @@ class PDFReport(FPDF):
         self.multi_cell(0, 5, text)
         self.ln(5)
 
-    def add_table(self, data, headers):
+    def add_table(self, data, headers, col_widths=None):
         self.set_font('Helvetica', 'B', 9)
-        page_width = self.w - 2 * self.l_margin
-        col_width = page_width / len(headers)
+        self.set_fill_color(73, 124, 182) 
+        self.set_text_color(255, 255, 255)
         
-        for header in headers:
-            self.cell(col_width, 7, header, 1)
+        page_width = self.w - 2 * self.l_margin
+        if col_widths is None:
+            col_width = page_width / len(headers)
+            col_widths = [col_width] * len(headers)
+        
+        for i, header in enumerate(headers):
+            self.cell(col_widths[i], 8, header, 1, 0, 'C', True)
         self.ln()
         
         self.set_font('Helvetica', '', 8)
+        self.set_text_color(0, 0, 0)
+        fill = False
         for row in data:
-            for item in row:
-                text = str(item)
-                if self.get_string_width(text) > col_width - 2:
-                    text = text[:int(col_width/2)] + ".."
-                self.cell(col_width, 6, text, 1)
+            if fill:
+                self.set_fill_color(217, 226, 243)
+            else:
+                self.set_fill_color(255, 255, 255)
+                
+            for i, item in enumerate(row):
+                text = str(item).replace('€', 'EUR')
+                if self.get_string_width(text) > col_widths[i] - 2:
+                    text = text[:int(col_widths[i]/4)] + ".."
+                self.cell(col_widths[i], 7, text, 1, 0, 'C', True)
             self.ln()
+            fill = not fill
         self.ln(5)
+
+# Load data
+df = pd.read_csv('financial_data.csv')
+y5 = df.iloc[-1]
 
 pdf = PDFReport()
 pdf.add_page()
 
-# 1. Project Recap
-pdf.chapter_title("1. Project Recap & Baseline")
-recap = ("Establishing a 2.3 GW integrated facility in Klaipeda FEZ, Lithuania. "
-         "The 'With-Project' scenario leverages 0% CIT and LONGi's HPBC 2.0 technology (24.8% efficiency). "
-         "The strategy uses a technology premium and operational efficiency gains to offset market price erosion.")
-pdf.chapter_body(recap)
-
-# 2. Capacity Model (TABLE TEMPLATE 1)
-pdf.chapter_title("2. TABLE TEMPLATE 1 - Capacity & ramp-up plan")
-capacity_headers = ['Year', 'Max capacity', 'Utilization %', 'Scrap % (if relevant)', 'Effective capacity']
-capacity_data = [
-    ['Year 1 (2026)', '2300', '50.0%', '5.0%', '1092.5'],
-    ['Year 2 (2027)', '2300', '75.0%', '4.0%', '1656.0'],
-    ['Year 3 (2028)', '2300', '90.0%', '3.0%', '2007.9'],
-    ['Year 4 (2029)', '2300', '95.0%', '2.0%', '2141.3'],
-    ['Year 5 (2030)', '2300', '100.0%', '2.0%', '2254.0']
+# 1. Baseline vs With-Project Summary
+pdf.chapter_title("1. Baseline vs With-Project summary")
+baseline_headers = ['Metric', 'Baseline (Outsource)', 'With-Project (Local)']
+baseline_data = [
+    ['Supply Chain Risk', 'High (Long lead times)', 'Low (Local control)'],
+    ['Production Cost', 'Market Price + Margin', 'Internal Variable Cost'],
+    ['Strategic Value', 'Dependency on Imports', 'EU "Made in EU" Premium'],
+    ['CIT Rate', '15%', '0% (Klaipeda FEZ)']
 ]
-pdf.add_table(capacity_data, capacity_headers)
+pdf.add_table(baseline_data, baseline_headers, col_widths=[50, 70, 70])
 
-# Chart 1: Volume Ramp-up
-if os.path.exists('volume_rampup.png'):
-    pdf.image('volume_rampup.png', x=10, w=180)
-    pdf.ln(5)
+# 2. Capacity & Ramp-up Plan
+pdf.chapter_title("TABLE TEMPLATE 1 - Capacity & ramp-up plan")
+cap_headers = ['Year', 'Max capacity', 'Utilization %', 'Scrap %', 'Effective capacity']
+cap_data = []
+for idx, row in df.iterrows():
+    cap_data.append([
+        f"Year {idx+1}",
+        f"{row['Max_Capacity_MW']:.0f}",
+        f"{row['Utilization_%']*100:.1f}%",
+        f"{row['Scrap_%']*100:.1f}%",
+        f"{row['Effective_Capacity_MW']:.2f}"
+    ])
+pdf.add_table(cap_data, cap_headers)
 
-# 3. Sales Model (TABLE TEMPLATE 2)
-pdf.chapter_title("3. TABLE TEMPLATE 2 - Sales forecast")
+# 3. Sales Forecast
+pdf.chapter_title("TABLE TEMPLATE 2 - Sales forecast")
 sales_headers = ['Year', 'Units sold', 'Price (EUR/unit)', 'Revenue (EUR)', 'Justification (short)']
-sales_data = [
-    ['Year 1', '1092.5', '126,000', '137,655,000', 'HPBC 2.0 premium'],
-    ['Year 2', '1656.0', '123,480', '204,482,880', '2% erosion'],
-    ['Year 3', '2007.9', '121,010', '242,976,782', 'Scale economies'],
-    ['Year 4', '2141.3', '118,590', '253,937,178', 'Market penetration'],
-    ['Year 5', '2254.0', '116,218', '261,956,247', 'Floor price reached']
-]
-pdf.add_table(sales_data, sales_headers)
+sales_data = []
+justifications = ['Market entry', 'Growth phase', 'Scale reach', 'Maturity', 'Full capacity']
+for idx, row in df.iterrows():
+    sales_data.append([
+        f"Year {idx+1}",
+        f"{row['Effective_Capacity_MW']:.2f}",
+        f"{row['Price_EUR_MW']:,.0f}",
+        f"{row['Revenue_EUR']:,.0f}",
+        justifications[idx]
+    ])
+pdf.add_table(sales_data, sales_headers, col_widths=[25, 35, 35, 45, 50])
 
-# 4. Unit Variable Cost (TABLE TEMPLATE 3)
-pdf.chapter_title("4. TABLE TEMPLATE 3 - Variable cost per unit breakdown")
+# 4. Unit Variable Cost Build-up
+pdf.chapter_title("TABLE TEMPLATE 3 - Variable cost per unit breakdown")
 vcost_headers = ['Component', 'Driver', 'Formula', 'EUR/unit', 'Source']
-# Based on Year 5 (2030) calculation in model
 vcost_data = [
-    ['Materials', 'Silicon/Cells', 'P * 0.72 * eff', '85,107', 'LONGi 2025'],
-    ['Direct labor', 'Min. wage 2026', '7.05 * 800h', '5,640', 'VDI 2026 Jan'],
-    ['Energy', 'Ind. Rate', '0.18 * 14k', '2,520', 'FEZ 2024'],
-    ['Scrap Effect', 'Process waste', 'Cost/(1-S)', '1,930', 'Industry Std'],
-    ['Total', '-', 'Sum', '94,740', '-']
+    ['Materials/ingredients', 'LONGi HPBC 2.0', 'Direct', '80,700', 'LONGi 2025 Spec'],
+    ['Packaging', 'Export grade', 'Fixed', '1,500', 'Logistics Spec'],
+    ['Direct labor', 'Lithuania Min', '800h * 16.5', '13,200', 'VDI 2026 Standard'],
+    ['Energy (if relevant)', 'Industrial rate', '0.18/kWh', '2,500', 'Eurostat Baltic'],
+    ['Platform fee / other', 'Scrap Effect', 'Cost/(1-S)-C', f"{y5['Scrap_Effect_EUR_MW']:,.0f}", 'Industry Std']
 ]
-pdf.add_table(vcost_data, vcost_headers)
+pdf.add_table(vcost_data, vcost_headers, col_widths=[45, 35, 35, 35, 40])
 
-# 5. Incremental Fixed Costs (TABLE TEMPLATE 4)
-pdf.chapter_title("5. TABLE TEMPLATE 4 - Incremental fixed costs")
+# 5. Incremental Fixed Costs
+pdf.chapter_title("TABLE TEMPLATE 4 - Incremental fixed costs")
 fixed_headers = ['Year', 'Maintenance', 'Extra staff', 'Rent/overhead', 'Other', 'Total fixed']
-fixed_data = [
-    ['Year 1', '1,800,000', '1,200,000', '400,000', '1,600,000', '5,000,000'],
-    ['Year 2', '2,000,000', '1,400,000', '400,000', '1,700,000', '5,500,000'],
-    ['Year 3', '2,000,000', '1,400,000', '400,000', '1,700,000', '5,500,000'],
-    ['Year 4', '2,000,000', '1,400,000', '400,000', '1,700,000', '5,500,000'],
-    ['Year 5', '2,000,000', '1,400,000', '400,000', '1,700,000', '5,500,000']
-]
+fixed_data = []
+for idx, row in df.iterrows():
+    fixed_data.append([
+        f"Year {idx+1}",
+        '432,000',
+        '288,000',
+        '96,000',
+        '384,000',
+        '1,200,000'
+    ])
 pdf.add_table(fixed_data, fixed_headers)
 
-# 6. Operating Statement (TABLE TEMPLATE 5)
-pdf.chapter_title("6. TABLE TEMPLATE 5 - Project operating statement")
+# 6. Project Operating Statement
+pdf.chapter_title("TABLE TEMPLATE 5 - Project operating statement")
 op_headers = ['Year', 'Units', 'Revenue', 'Variable costs', 'Contribution', 'Fixed costs', 'EBITDA']
-op_data = [
-    ['Year 1', '1092.5', '137,655,000', '108,744,000', '28,911,000', '5,000,000', '23,911,000'],
-    ['Year 2', '1656.0', '204,482,880', '162,370,800', '42,112,080', '5,500,000', '36,612,080'],
-    ['Year 3', '2007.9', '242,976,782', '193,955,191', '49,021,591', '5,500,000', '43,521,591'],
-    ['Year 4', '2141.3', '253,937,178', '203,795,975', '50,141,203', '5,500,000', '44,641,203'],
-    ['Year 5', '2254.0', '261,956,247', '213,543,309', '48,412,938', '5,500,000', '42,912,938']
-]
-pdf.add_table(op_data, op_headers)
+op_data = []
+for idx, row in df.iterrows():
+    op_data.append([
+        f"Year {idx+1}",
+        f"{row['Effective_Capacity_MW']:.1f}",
+        f"{row['Revenue_EUR']:,.0f}",
+        f"{row['Total_Var_Costs_EUR']:,.0f}",
+        f"{row['Contribution_Margin_EUR']:,.0f}",
+        '1,200,000',
+        f"{row['EBITDA_EUR']:,.0f}"
+    ])
+pdf.add_table(op_data, op_headers, col_widths=[20, 20, 35, 35, 35, 25, 20])
 
-# 7. Break-even Analysis (TABLE TEMPLATE 6)
-pdf.chapter_title("7. TABLE TEMPLATE 6 - Break-even (2030)")
-be_headers = ['Item', 'Value', 'Notes']
+# 7. Break-even Calculation
+pdf.chapter_title("TABLE TEMPLATE 6 - Break-even")
+q_be = y5['Fixed_Costs_EUR'] / (y5['Price_EUR_MW'] - y5['Total_Var_Cost_Per_MW'])
+mos = (y5['Effective_Capacity_MW'] - q_be) / y5['Effective_Capacity_MW'] * 100
 be_data = [
-    ['Price (EUR/unit)', '116,218', 'EUR/MW'],
-    ['Variable cost (EUR/unit)', '94,740', 'EUR/MW'],
-    ['Contribution (EUR/unit)', '21,478', 'Price - Variable cost'],
-    ['Fixed costs (EUR/period)', '5,500,000', 'Annual burden'],
-    ['Break-even units (Q_BE)', '256.1', 'Fixed / Contrib unit'],
-    ['Break-even revenue', '29,760,639', 'Q_BE * Price'],
-    ['Margin of safety', '88.6%', '(Exp - Q_BE)/Exp']
+    ['Price (EUR/unit)', f"{y5['Price_EUR_MW']:,.0f}", 'EUR/MW'],
+    ['Variable cost (EUR/unit)', f"{y5['Total_Var_Cost_Per_MW']:,.0f}", 'EUR/MW'],
+    ['Contribution (EUR/unit)', f"{(y5['Price_EUR_MW'] - y5['Total_Var_Cost_Per_MW']):,.0f}", 'Price - Variable cost'],
+    ['Fixed costs (EUR/period)', '1,200,000', 'Annual burden'],
+    ['Break-even units (Q_BE)', f"{q_be:,.2f}", 'Fixed / Contribution per unit'],
+    ['Break-even revenue', f"{q_be * y5['Price_EUR_MW']:,.0f}", 'Q_BE x Price'],
+    ['Margin of safety', f"{mos:.1f}%", '(Expected - Q_BE)/Expected']
 ]
-pdf.add_table(be_data, be_headers)
+pdf.add_table(be_data, ['Item', 'Value', 'Notes'], col_widths=[50, 40, 100])
 
-# Chart 2: Break-even Chart
-if os.path.exists('breakeven_chart.png'):
-    pdf.image('breakeven_chart.png', x=10, w=180)
-    pdf.ln(5)
-
-# 8. Assumptions & Sources (TABLE TEMPLATE 7)
-pdf.chapter_title("8. TABLE TEMPLATE 7 - Assumptions & Sources")
+# 8. Assumptions & Sources
+pdf.chapter_title("TABLE TEMPLATE 7 - Assumptions & Sources")
 sources_headers = ['Assumption', 'Value', 'Unit', 'Source', 'Why reasonable', 'Low/Base/High']
 sources_data = [
     ['Price', '126,000', 'EUR/MW', 'LONGi 2025', 'HPBC 2.0 premium', 'Base'],
-    ['Volume / demand', '2,300', 'MW', 'Market study', 'EU solar target', 'Base'],
+    ['Volume / demand', '250', 'MW', 'Market study', 'Realistic domestic share', 'Base'],
     ['Ramp-up (utilization)', '50%-100%', '%', 'Project plan', 'Staged growth', 'Base'],
-    ['Wage rate (min)', '7.05', 'EUR/h', 'VDI 2026 Jan', 'Lithuanian regulation', 'Base'],
+    ['Wage rate', '16.50', 'EUR/h', 'VDI 2026', 'Lithuanian standard', 'Base'],
     ['Energy price', '0.18', 'EUR/kWh', 'Eurostat', 'Baltic industrial', 'Base'],
     ['Scrap / yield', '2% - 5%', '%', 'Industry Std', 'Improving ramp-up', 'Base'],
-    ['Maintenance', '2,000,000', 'EUR/yr', 'Vendor spec', 'High-tech eqpt', 'Base']
+    ['Maintenance', '432,000', 'EUR/yr', 'Vendor spec', 'Scaled for 250MW', 'Base']
 ]
-pdf.add_table(sources_data, sources_headers)
+pdf.add_table(sources_data, sources_headers, col_widths=[35, 20, 20, 30, 45, 30])
+
+# Visuals at the end
+pdf.add_page()
+pdf.chapter_title("Financial Visualizations")
+if os.path.exists('volume_rampup.png'):
+    pdf.image('volume_rampup.png', x=15, w=180)
+    pdf.ln(5)
+if os.path.exists('breakeven_chart.png'):
+    pdf.image('breakeven_chart.png', x=15, w=180)
 
 # Save
-pdf_file = "/Users/tangtaowei/Desktop/MC PF/IE/Mar 17/Production_Financial_Plan_Milestone_2_Final.pdf"
-pdf.output(pdf_file)
-print(f"Final Template-Compliant PDF generated: {pdf_file}")
+output_path = "/Users/tangtaowei/Desktop/IE/Mar 17/Production_Financial_Plan_Milestone_2_Final.pdf"
+pdf.output(output_path)
+print(f"Reordered and updated PDF generated: {output_path}")

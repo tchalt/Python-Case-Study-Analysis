@@ -1,141 +1,216 @@
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.enum.text import PP_ALIGN
+from pptx.dml.color import RGBColor
+import pandas as pd
 import os
 
+def set_cell_text(cell, text, bold=False, font_size=10, font_color=None, alignment=PP_ALIGN.CENTER):
+    cell.text = str(text)
+    for paragraph in cell.text_frame.paragraphs:
+        paragraph.font.size = Pt(font_size)
+        paragraph.font.bold = bold
+        if font_color:
+            paragraph.font.color.rgb = RGBColor(*font_color)
+        paragraph.alignment = alignment
+
+def apply_table_style(table):
+    """Apply blue header and alternating row colors to match template images"""
+    # Header row
+    for c in range(len(table.columns)):
+        cell = table.cell(0, c)
+        cell.fill.solid()
+        cell.fill.fore_color.rgb = RGBColor(73, 124, 182) # Template blue
+        set_cell_text(cell, cell.text, bold=True, font_color=(255, 255, 255))
+
+    # Data rows
+    for r in range(1, len(table.rows)):
+        fill_color = RGBColor(217, 226, 243) if r % 2 == 0 else RGBColor(255, 255, 255)
+        for c in range(len(table.columns)):
+            cell = table.cell(r, c)
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = fill_color
+            set_cell_text(cell, cell.text, font_size=9)
+
 def create_presentation():
+    # Load data
+    df = pd.read_csv('financial_data.csv')
+    y5 = df.iloc[-1]
+    
     prs = Presentation()
 
     # Slide 1: Title Slide
     slide = prs.slides.add_slide(prs.slide_layouts[0])
     title = slide.shapes.title
     subtitle = slide.placeholders[1]
-    title.text = "BalticSolar Tech: Production Financial Plan"
-    subtitle.text = "Strategic Investment Evaluation - Klaipeda Hub\nMarch 2026"
+    title.text = "Lithuania PV Production Financial Plan"
+    subtitle.text = "Market-Scaled Strategic Investment Evaluation (250 MW)\nMarch 2026"
 
-    # Slide 2: Project Recap & Story
-    slide = prs.slides.add_slide(prs.slide_layouts[1])
-    slide.shapes.title.text = "Project Overview & Story"
-    content = slide.placeholders[1]
-    content.text = ("• Strategic local production in Klaipeda FEZ, Lithuania.\n"
-                    "• Transition from Chinese outsourcing to 'Made in EU'.\n"
-                    "• High-efficiency HPBC 2.0 Tech (24.8%) to secure market share.\n"
-                    "• Leveraging 0% CIT and optimized logistics.")
-
-    # Slide 3: Baseline vs With-Project Summary
+    # Slide 2: Baseline vs With-Project Summary
     slide = prs.slides.add_slide(prs.slide_layouts[5])
-    slide.shapes.title.text = "Baseline vs. With-Project Summary"
-    rows, cols = 3, 3
-    table = slide.shapes.add_table(rows, cols, Inches(0.5), Inches(1.5), Inches(9), Inches(2)).table
-    table.cell(0, 0).text = 'Metric'
-    table.cell(0, 1).text = 'Baseline (Outsource)'
-    table.cell(0, 2).text = 'With-Project (Local)'
-    table.cell(1, 0).text = 'Supply Chain'
-    table.cell(1, 1).text = 'High risk, long lead'
-    table.cell(1, 2).text = 'Secure EU local'
-    table.cell(2, 0).text = 'Unit Cost (2030)'
-    table.cell(2, 1).text = '> EUR 115k (Import)'
-    table.cell(2, 2).text = 'EUR 94.7k (Internal)'
+    slide.shapes.title.text = "1. Baseline vs With-Project summary"
+    rows, cols = 5, 3
+    table = slide.shapes.add_table(rows, cols, Inches(0.5), Inches(1.5), Inches(9), Inches(3)).table
+    headers = ['Metric', 'Baseline (Outsource)', 'With-Project (Local)']
+    for c, h in enumerate(headers): table.cell(0, c).text = h
+    
+    data = [
+        ['Supply Chain Risk', 'High (Long lead times)', 'Low (Local control)'],
+        ['Production Cost', 'Market Price + Margin', 'Internal Variable Cost'],
+        ['Strategic Value', 'Dependency on Imports', 'EU "Made in EU" Premium'],
+        ['CIT Rate', '15%', '0% (Klaipeda FEZ)']
+    ]
+    for r, row in enumerate(data):
+        for c, val in enumerate(row): table.cell(r+1, c).text = val
+    apply_table_style(table)
 
-    # Slide 4: Capacity & Ramp-up Plan (Template 1)
+    # Slide 3: Capacity Model (Template 1)
     slide = prs.slides.add_slide(prs.slide_layouts[5])
-    slide.shapes.title.text = "TABLE 1: Capacity & Ramp-up Plan"
+    slide.shapes.title.text = "TABLE TEMPLATE 1 — Capacity & ramp-up plan"
     rows, cols = 6, 5
     table = slide.shapes.add_table(rows, cols, Inches(0.5), Inches(1.5), Inches(9), Inches(3)).table
-    headers = ['Year', 'Max Cap', 'Util %', 'Scrap %', 'Eff Cap']
-    data = [
-        ['Year 1 (2026)', '2300', '50.0%', '5.0%', '1092.5'],
-        ['Year 2 (2027)', '2300', '75.0%', '4.0%', '1656.0'],
-        ['Year 3 (2028)', '2300', '90.0%', '3.0%', '2007.9'],
-        ['Year 4 (2029)', '2300', '95.0%', '2.0%', '2141.3'],
-        ['Year 5 (2030)', '2300', '100.0%', '2.0%', '2254.0']
-    ]
+    headers = ['Year', 'Max capacity', 'Utilization %', 'Scrap %', 'Effective capacity']
     for c, h in enumerate(headers): table.cell(0, c).text = h
-    for r, row in enumerate(data):
-        for c, val in enumerate(row): table.cell(r+1, c).text = val
+    
+    for r, row in df.iterrows():
+        data_row = [
+            f"Year {int(r+1)}",
+            f"{row['Max_Capacity_MW']:.0f}",
+            f"{row['Utilization_%']*100:.1f}%",
+            f"{row['Scrap_%']*100:.1f}%",
+            f"{row['Effective_Capacity_MW']:.2f}"
+        ]
+        for c, val in enumerate(data_row): table.cell(r+1, c).text = val
+    apply_table_style(table)
 
-    # Slide 5: Volume Ramp-up Chart
+    # Slide 4: Sales Model (Template 2)
     slide = prs.slides.add_slide(prs.slide_layouts[5])
-    slide.shapes.title.text = "Chart: Production Volume Ramp-up"
-    if os.path.exists('volume_rampup.png'):
-        slide.shapes.add_picture('volume_rampup.png', Inches(1), Inches(1.5), width=Inches(8))
-
-    # Slide 6: Sales Forecast (Template 2)
-    slide = prs.slides.add_slide(prs.slide_layouts[5])
-    slide.shapes.title.text = "TABLE 2: Sales Forecast"
-    rows, cols = 6, 4
-    table = slide.shapes.add_table(rows, cols, Inches(0.5), Inches(1.5), Inches(9), Inches(3)).table
-    headers = ['Year', 'Units sold', 'Price (EUR)', 'Revenue (EUR)']
-    data = [
-        ['Year 1', '1092.5', '126,000', '137,655,000'],
-        ['Year 2', '1656.0', '123,480', '204,482,880'],
-        ['Year 3', '2007.9', '121,010', '242,976,782'],
-        ['Year 4', '2141.3', '118,590', '253,937,178'],
-        ['Year 5', '2254.0', '116,218', '261,956,247']
-    ]
-    for c, h in enumerate(headers): table.cell(0, c).text = h
-    for r, row in enumerate(data):
-        for c, val in enumerate(row): table.cell(r+1, c).text = val
-
-    # Slide 7: Unit Variable Cost Breakdown (Template 3)
-    slide = prs.slides.add_slide(prs.slide_layouts[5])
-    slide.shapes.title.text = "TABLE 3: Variable Cost Breakdown (2030)"
-    rows, cols = 6, 4
-    table = slide.shapes.add_table(rows, cols, Inches(0.5), Inches(1.5), Inches(9), Inches(3)).table
-    headers = ['Component', 'Formula', 'EUR/unit', 'Source']
-    data = [
-        ['Materials', 'P * 0.72 * eff', '85,107', 'LONGi 2025'],
-        ['Direct labor', '7.05 * 800h', '5,640', 'VDI 2026 Jan'],
-        ['Energy', '0.18 * 14k', '2,520', 'FEZ 2024'],
-        ['Scrap Effect', 'Cost/(1-S)', '1,930', 'Industry Std'],
-        ['Total', 'Sum', '94,740', '-']
-    ]
-    for c, h in enumerate(headers): table.cell(0, c).text = h
-    for r, row in enumerate(data):
-        for c, val in enumerate(row): table.cell(r+1, c).text = val
-
-    # Slide 8: Operating Statement (Template 5)
-    slide = prs.slides.add_slide(prs.slide_layouts[5])
-    slide.shapes.title.text = "TABLE 5: Project Operating Statement"
+    slide.shapes.title.text = "TABLE TEMPLATE 2 — Sales forecast"
     rows, cols = 6, 5
+    table = slide.shapes.add_table(rows, cols, Inches(0.5), Inches(1.5), Inches(9), Inches(3)).table
+    headers = ['Year', 'Units sold', 'Price (EUR/unit)', 'Revenue (EUR)', 'Justification (short)']
+    for c, h in enumerate(headers): table.cell(0, c).text = h
+    
+    justifications = ['Market entry', 'Growth phase', 'Scale reach', 'Maturity', 'Full capacity']
+    for r, row in df.iterrows():
+        data_row = [
+            f"Year {int(r+1)}",
+            f"{row['Effective_Capacity_MW']:.2f}",
+            f"{row['Price_EUR_MW']:,.0f}",
+            f"{row['Revenue_EUR']:,.0f}",
+            justifications[r]
+        ]
+        for c, val in enumerate(data_row): table.cell(r+1, c).text = val
+    apply_table_style(table)
+
+    # Slide 5: Variable Cost Breakdown (Template 3)
+    slide = prs.slides.add_slide(prs.slide_layouts[5])
+    slide.shapes.title.text = "TABLE TEMPLATE 3 — Variable cost per unit breakdown"
+    rows, cols = 6, 5
+    table = slide.shapes.add_table(rows, cols, Inches(0.5), Inches(1.5), Inches(9), Inches(3)).table
+    headers = ['Component', 'Driver', 'Formula', 'EUR/unit', 'Source']
+    for c, h in enumerate(headers): table.cell(0, c).text = h
+    
+    vcost_data = [
+        ['Materials/ingredients', 'LONGi HPBC 2.0', 'Direct', '80,700', 'LONGi 2025 Spec'],
+        ['Packaging', 'Export grade', 'Fixed', '1,500', 'Logistics Spec'],
+        ['Direct labor', 'Lithuania Min', '800h * 16.5', '13,200', 'VDI 2026 Std'],
+        ['Energy (if relevant)', 'Industrial rate', '0.18/kWh', '2,500', 'Eurostat'],
+        ['Platform fee / other', 'Scrap Effect', 'Cost/(1-S)-C', f"{y5['Scrap_Effect_EUR_MW']:,.0f}", 'Industry Std']
+    ]
+    for r, row in enumerate(vcost_data):
+        for c, val in enumerate(row): table.cell(r+1, c).text = val
+    apply_table_style(table)
+
+    # Slide 6: Incremental Fixed Costs (Template 4)
+    slide = prs.slides.add_slide(prs.slide_layouts[5])
+    slide.shapes.title.text = "TABLE TEMPLATE 4 — Incremental fixed costs"
+    rows, cols = 6, 6
+    table = slide.shapes.add_table(rows, cols, Inches(0.5), Inches(1.5), Inches(9), Inches(3)).table
+    headers = ['Year', 'Maintenance', 'Extra staff', 'Rent/overhead', 'Other', 'Total fixed']
+    for c, h in enumerate(headers): table.cell(0, c).text = h
+    
+    for r in range(5):
+        data_row = [f"Year {r+1}", '432,000', '288,000', '96,000', '384,000', '1,200,000']
+        for c, val in enumerate(data_row): table.cell(r+1, c).text = val
+    apply_table_style(table)
+
+    # Slide 7: Operating Statement (Template 5)
+    slide = prs.slides.add_slide(prs.slide_layouts[5])
+    slide.shapes.title.text = "TABLE TEMPLATE 5 — Project operating statement"
+    rows, cols = 6, 7
     table = slide.shapes.add_table(rows, cols, Inches(0.2), Inches(1.5), Inches(9.6), Inches(3)).table
-    headers = ['Year', 'Revenue', 'Variable costs', 'Fixed costs', 'EBITDA']
-    data = [
-        ['Year 1', '137,655,000', '108,744,000', '5,000,000', '23,911,000'],
-        ['Year 2', '204,482,880', '162,370,800', '5,500,000', '36,612,080'],
-        ['Year 3', '242,976,782', '193,955,191', '5,500,000', '43,521,591'],
-        ['Year 4', '253,937,178', '203,795,975', '5,500,000', '44,641,203'],
-        ['Year 5', '261,956,247', '213,543,309', '5,500,000', '42,912,938']
-    ]
+    headers = ['Year', 'Units', 'Revenue', 'Variable costs', 'Contribution', 'Fixed costs', 'EBITDA']
     for c, h in enumerate(headers): table.cell(0, c).text = h
-    for r, row in enumerate(data):
-        for c, val in enumerate(row): table.cell(r+1, c).text = val
+    
+    for r, row in df.iterrows():
+        data_row = [
+            f"Year {int(r+1)}",
+            f"{row['Effective_Capacity_MW']:.1f}",
+            f"{row['Revenue_EUR']:,.0f}",
+            f"{row['Total_Var_Costs_EUR']:,.0f}",
+            f"{row['Contribution_Margin_EUR']:,.0f}",
+            '1,200,000',
+            f"{row['EBITDA_EUR']:,.0f}"
+        ]
+        for c, val in enumerate(data_row): table.cell(r+1, c).text = val
+    apply_table_style(table)
 
-    # Slide 9: Break-even Chart
+    # Slide 8: Break-even Analysis (Template 6)
     slide = prs.slides.add_slide(prs.slide_layouts[5])
-    slide.shapes.title.text = "Break-even Analysis (Chart)"
-    if os.path.exists('breakeven_chart.png'):
-        slide.shapes.add_picture('breakeven_chart.png', Inches(1), Inches(1.5), width=Inches(8))
-
-    # Slide 10: Assumptions & Sources (Template 7)
-    slide = prs.slides.add_slide(prs.slide_layouts[5])
-    slide.shapes.title.text = "Assumptions & Sources"
-    rows, cols = 6, 3
+    slide.shapes.title.text = "TABLE TEMPLATE 6 — Break-even"
+    q_be = y5['Fixed_Costs_EUR'] / (y5['Price_EUR_MW'] - y5['Total_Var_Cost_Per_MW'])
+    mos = (y5['Effective_Capacity_MW'] - q_be) / y5['Effective_Capacity_MW'] * 100
+    
+    rows, cols = 8, 3
     table = slide.shapes.add_table(rows, cols, Inches(0.5), Inches(1.5), Inches(9), Inches(4)).table
-    headers = ['Assumption', 'Value', 'Source']
-    data = [
-        ['Wage Rate (Min)', 'EUR 7.05/h', 'VDI 2026 Jan'],
-        ['CIT Rate', '0%', 'FEZ Law (10yr)'],
-        ['Price Erosion', '2% YoY', 'Market Analysis'],
-        ['HPBC 2.0 Eff.', '24.8%', 'LONGi 2025'],
-        ['Elec. Price', 'EUR 0.18/kWh', 'Eurostat']
-    ]
+    headers = ['Item', 'Value', 'Notes']
     for c, h in enumerate(headers): table.cell(0, c).text = h
-    for r, row in enumerate(data):
+    
+    be_data = [
+        ['Price (EUR/unit)', f"{y5['Price_EUR_MW']:,.0f}", 'EUR/MW'],
+        ['Variable cost (EUR/unit)', f"{y5['Total_Var_Cost_Per_MW']:,.0f}", 'EUR/MW'],
+        ['Contribution (EUR/unit)', f"{(y5['Price_EUR_MW'] - y5['Total_Var_Cost_Per_MW']):,.0f}", 'Price - Var cost'],
+        ['Fixed costs (EUR/period)', '1,200,000', 'Annual burden'],
+        ['Break-even units (Q_BE)', f"{q_be:,.2f}", 'Fixed / Contrib unit'],
+        ['Break-even revenue', f"{q_be * y5['Price_EUR_MW']:,.0f}", 'Q_BE x Price'],
+        ['Margin of safety', f"{mos:.1f}%", '(Exp - Q_BE)/Exp']
+    ]
+    for r, row in enumerate(be_data):
         for c, val in enumerate(row): table.cell(r+1, c).text = val
+    apply_table_style(table)
+
+    # Slide 9: Assumptions & Sources (Template 7)
+    slide = prs.slides.add_slide(prs.slide_layouts[5])
+    slide.shapes.title.text = "TABLE TEMPLATE 7 — Assumptions & Sources"
+    rows, cols = 8, 6
+    table = slide.shapes.add_table(rows, cols, Inches(0.2), Inches(1.5), Inches(9.6), Inches(4)).table
+    headers = ['Assumption', 'Value', 'Unit', 'Source', 'Why reasonable', 'Low/Base/High']
+    for c, h in enumerate(headers): table.cell(0, c).text = h
+    
+    ass_data = [
+        ['Price', '126,000', 'EUR/MW', 'LONGi 2025', 'HPBC 2.0 premium', 'Base'],
+        ['Volume / demand', '250', 'MW', 'Market study', 'Realistic domestic share', 'Base'],
+        ['Ramp-up (utilization)', '50%-100%', '%', 'Project plan', 'Staged growth', 'Base'],
+        ['Wage rate', '16.50', 'EUR/h', 'VDI 2026', 'Lithuanian standard', 'Base'],
+        ['Energy price', '0.18', 'EUR/kWh', 'Eurostat', 'Baltic industrial', 'Base'],
+        ['Scrap / yield', '2% - 5%', '%', 'Industry Std', 'Improving ramp-up', 'Base'],
+        ['Maintenance', '432,000', 'EUR/yr', 'Vendor spec', 'Scaled for 250MW', 'Base']
+    ]
+    for r, row in enumerate(ass_data):
+        for c, val in enumerate(row): table.cell(r+1, c).text = val
+    apply_table_style(table)
+
+    # Slide 10: Charts
+    slide = prs.slides.add_slide(prs.slide_layouts[5])
+    slide.shapes.title.text = "Financial Performance Visualizations"
+    if os.path.exists('volume_rampup.png'):
+        slide.shapes.add_picture('volume_rampup.png', Inches(0.5), Inches(1.5), height=Inches(3.5))
+    if os.path.exists('breakeven_chart.png'):
+        slide.shapes.add_picture('breakeven_chart.png', Inches(5), Inches(1.5), height=Inches(3.5))
 
     prs.save('Production_Financial_Plan_Presentation.pptx')
-    print("Presentation generated: Production_Financial_Plan_Presentation.pptx")
+    print("Reordered and updated Presentation generated: Production_Financial_Plan_Presentation.pptx")
 
 if __name__ == "__main__":
     create_presentation()

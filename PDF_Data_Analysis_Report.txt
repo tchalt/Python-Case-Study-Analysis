@@ -1,72 +1,68 @@
-DATA ANALYSIS REPORT: BALTICSOLAR TECH PRODUCTION FINANCIAL PLAN
-================================================================
+DATA ANALYSIS REPORT: LITHUANIA PV PRODUCTION FINANCIAL PLAN (MARKET-SCALED)
+========================================================================
 
-1. PROJECT OVERVIEW
-------------------
-Facility Location: Klaipeda FEZ, Lithuania
-Project Scope: 2.3 GW integrated solar facility
-Key Technology: LONGi's HPBC 2.0 (24.8% efficiency)
-Financial Incentive: 0% Corporate Income Tax (CIT) in Klaipeda FEZ
+1. BASELINE VS WITH-PROJECT SUMMARY
+----------------------------------
+- Supply Chain Risk: High (Baseline) vs Low (Local With-Project)
+- Production Cost: Market Price (Baseline) vs Internal Variable Cost (With-Project)
+- Strategic Value: EU "Made in EU" Premium secured.
+- CIT Rate: 15% (Baseline) vs 0% (Klaipeda FEZ Incentive).
 
 2. CAPACITY & RAMP-UP PLAN (2026-2030)
 -------------------------------------
-- Max Capacity: 2,300 MW (Stable across all 5 years)
-- Utilization Ramp-up:
-    - Year 1 (2026): 50.0% (1,092.5 MW)
-    - Year 2 (2027): 75.0% (1,656.0 MW)
-    - Year 3 (2028): 90.0% (2,007.9 MW)
-    - Year 4 (2029): 95.0% (2,141.3 MW)
-    - Year 5 (2030): 100.0% (2,254.0 MW)
-- Scrap Rate: Decreases from 5.0% (Year 1) to 2.0% (Year 5)
+- Max Capacity: 250.0 MW (Stable)
+- Utilization Ramp-up: 50% (Year 1) to 100% (Year 5).
+- Effective Capacity: 118.75 MW (Year 1) to 245.00 MW (Year 5).
+- Scrap Rate: Improved from 5.0% to 2.0%.
 
 3. SALES FORECAST & REVENUE
 --------------------------
-- Initial Price (Year 1): 126,000 EUR/unit
-- Terminal Price (Year 5): 116,218 EUR/unit
-- Total Revenue Forecast:
-    - Year 1: 137.66 Million EUR
-    - Year 5: 261.96 Million EUR
-- Strategy: Technology premium (HPBC 2.0) initially, followed by market price erosion offset by scale economies.
+- Initial Price: 126,000 EUR/MW (Year 1)
+- Terminal Price: 116,218 EUR/MW (Year 5)
+- Revenue: 14.96 Million EUR (Year 1) to 28.47 Million EUR (Year 5).
 
-4. COST STRUCTURE BREAKDOWN (Year 5)
------------------------------------
-Variable Cost per Unit (EUR/unit):
-- Materials (Silicon/Cells): 85,107 (Primary driver)
-- Direct Labor: 5,640
-- Energy: 2,520
-- Scrap Effect: 1,930
-- Total Variable Cost: 94,740 EUR/unit
-
-Fixed Costs (Incremental):
-- Maintenance: 2,000,000 EUR/yr (stable after Year 2)
-- Extra Staff: 1,400,000 EUR/yr (stable after Year 2)
-- Total Annual Fixed Burden: 5,500,000 EUR (stable after Year 2)
-
-5. OPERATING STATEMENT SUMMARY (EBITDA)
+4. UNIT VARIABLE COST BUILD-UP (Year 5)
 --------------------------------------
-- Year 1 EBITDA: 23.91 Million EUR
-- Year 2 EBITDA: 36.61 Million EUR
-- Year 3 EBITDA: 43.52 Million EUR
-- Year 4 EBITDA: 44.64 Million EUR
-- Year 5 EBITDA: 42.91 Million EUR
-- Note: Year 5 EBITDA slightly lower than Year 4 due to floor price reaching its limit and volume saturation.
+Variable Cost per MW:
+- Materials: 80,700 EUR
+- Packaging: 1,500 EUR (Filled per requirement)
+- Direct Labor: 13,200 EUR (800h * 16.50 EUR/h)
+- Direct Energy: 2,500 EUR
+- Scrap Effect: 1,998 EUR (Calculated based on sum of above)
+- Total Variable Cost: 99,898 EUR/MW
 
-6. BREAK-EVEN ANALYSIS (2030)
-----------------------------
-- Price per Unit: 116,218 EUR
-- Variable Cost per Unit: 94,740 EUR
-- Contribution Margin: 21,478 EUR/unit
-- Annual Fixed Costs: 5,500,000 EUR
-- Break-even Quantity (Q_BE): 256.1 Units
-- Break-even Revenue: 29.76 Million EUR
-- Margin of Safety: 88.6% (Extremely robust project sustainability)
+5. INCREMENTAL FIXED COSTS (Annual)
+----------------------------------
+- Maintenance: 432,000 EUR
+- Extra staff: 288,000 EUR
+- Rent/overhead: 96,000 EUR
+- Other: 384,000 EUR
+- Total Annual Fixed Burden: 1,200,000 EUR
 
-7. KEY ASSUMPTIONS & RISK FACTORS
---------------------------------
-- Price erosion: Assumed 2% annual price erosion, eventually reaching a floor price.
-- Labor: Based on VDI 2026 January minimum wage regulations (7.05 EUR/h).
-- Energy: Baltic industrial rate (0.18 EUR/kWh).
-- Yield: Scrap rates improving from 5% to 2% during ramp-up phase.
+6. PROJECT OPERATING STATEMENT (Year 5 Summary)
+----------------------------------------------
+- Revenue: 28.47 Million EUR
+- Variable Costs: 24.47 Million EUR
+- Contribution: 4.00 Million EUR
+- Fixed Costs: 1.20 Million EUR
+- EBITDA: 2.80 Million EUR
 
-Report Generated: 2026-03-14
-Source Document: Production_Financial_Plan_Milestone_2_Final.pdf
+7. BREAK-EVEN CALCULATION (2030)
+-------------------------------
+- Price per MW: 116,218 EUR
+- Variable Cost per MW: 99,898 EUR
+- Contribution per MW: 16,320 EUR
+- Break-even Units: 73.53 MW
+- Margin of Safety: 70.0% (Robust at 250 MW scale)
+
+8. ASSUMPTIONS & SOURCES (TABLE TEMPLATE 7)
+---------------------------------------------
+- Price: 126,000 EUR/MW (LONGi 2025)
+- Volume: 250 MW (Market study)
+- Wage: 16.50 EUR/h (VDI 2026)
+- Energy: 0.18 EUR/kWh (Eurostat)
+- Scrap: 2%-5% (Industry Std)
+- Maintenance: 432,000 EUR/yr (Vendor spec)
+
+Report Generated: 2026-03-21
+Source: Production_Financial_Plan_Milestone_2_Final.pdf
