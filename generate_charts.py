@@ -9,7 +9,7 @@ os.chdir(working_dir)
 # Load data from the model
 df = pd.read_csv('financial_data.csv')
 
-years = df['Year'].tolist()
+years = df['Year'].astype(int).tolist()
 revenue = (df['Revenue_EUR'] / 1e6).tolist() # Million EUR
 ebitda = (df['EBITDA_EUR'] / 1e6).tolist() # Million EUR
 total_costs = ((df['Total_Var_Costs_EUR'] + df['Fixed_Costs_EUR']) / 1e6).tolist() # Million EUR
@@ -51,6 +51,7 @@ plt.annotate(f'2030 EBITDA: €{ebitda[-1]:.1f}M',
 plt.title("Revenue vs. Total Costs: Profitability Path (2026-2030)", fontsize=14, fontweight='bold')
 plt.xlabel("Year", fontsize=12)
 plt.ylabel("Million EUR (€)", fontsize=12)
+plt.xticks(years, years)
 plt.grid(True, linestyle=':', alpha=0.5)
 plt.legend(loc='upper left', frameon=True, shadow=True)
 plt.tight_layout()
